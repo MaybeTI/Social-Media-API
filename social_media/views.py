@@ -16,17 +16,43 @@ from social_media.serializers import (
     PostListSerializer,
     PostDetailSerializer,
 )
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework.permissions import IsAuthenticated
 
 
+@extend_schema(
+    summary="Profile viewset",
+    description="API endpoints for managing user profiles.",
+    parameters=[
+        OpenApiParameter(name='username', type=str, location=OpenApiParameter.QUERY),
+        OpenApiParameter(name='email', type=str, location=OpenApiParameter.QUERY),
+    ],
+    responses={
+        200: ProfileSerializer(many=True),
+        401: "Authentication credentials were not provided.",
+        403: "You do not have permission to perform this action.",
+    },
+)
 class ProfileViewSet(viewsets.ModelViewSet):
-    queryset = Profile.objects.all()
     permission_classes = (IsAuthenticated, IsProfileOwnerOrReadOnly)
 
     def get_serializer_class(self):
         if self.action == "retrieve":
             return ProfileDetailSerializer
         return ProfileSerializer
+
+    def get_queryset(self):
+        queryset = Profile.objects.all()
+        username = self.request.query_params.get("username")
+        email = self.request.query_params.get("email")
+
+        if username:
+            queryset = queryset.filter(user__username__icontains=username)
+
+        if email:
+            queryset = queryset.filter(user__email__icontains=email)
+
+        return queryset
 
 
 class FollowProfileView(APIView):
@@ -114,6 +140,22 @@ class PostViewSet(viewsets.ModelViewSet):
         return Response(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
+
+    @extend_schema(
+        summary="List posts",
+        description="Returns a list of posts created by users that the authenticated user follows.",
+        parameters=[
+            OpenApiParameter(name='title', type=str, location=OpenApiParameter.QUERY),
+            OpenApiParameter(name='author', type=str, location=OpenApiParameter.QUERY),
+        ],
+        responses={
+            200: PostListSerializer(many=True),
+            401: "Authentication credentials were not provided.",
+            403: "You do not have permission to perform this action.",
+        },
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 class LikePostView(APIView):
