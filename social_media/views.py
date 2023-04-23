@@ -88,13 +88,12 @@ class UnfollowProfileView(APIView):
 
 
 class PostViewSet(viewsets.ModelViewSet):
-    serializer_class = PostSerializer
     permission_classes = (IsAuthenticated, IsOwnerOrReadOnly)
 
     def get_queryset(self):
         queryset = Post.objects.filter(
             author__in=self.request.user.profile.follows.all()
-        )
+        ).select_related("author")
         title = self.request.query_params.get("title")
         author = self.request.query_params.get("author")
 

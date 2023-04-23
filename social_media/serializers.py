@@ -24,7 +24,14 @@ class ProfileSerializer(serializers.ModelSerializer):
         return user.profile.follows.filter(id=obj.id).exists()
 
 
+class PostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Post
+        fields = ("id", "title", "content", "image")
+
+
 class ProfileDetailSerializer(ProfileSerializer):
+    posts = PostSerializer(read_only=True, many=True)
     class Meta:
         model = Profile
         fields = (
@@ -44,12 +51,6 @@ class ProfileDetailForLikes(ProfileSerializer):
     class Meta:
         model = Profile
         fields = ("user_email",)
-
-
-class PostSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Post
-        fields = ("id", "title", "content", "image")
 
 
 class PostListSerializer(serializers.ModelSerializer):
